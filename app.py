@@ -2,7 +2,7 @@
 import streamlit as st
 import pandas as pd
 import random
-from st_aggrid import AgGrid, GridOptionsBuilder, JsCode
+from st_aggrid import AgGrid, GridOptionsBuilder
 
 def speak_text(text):
     unique = random.randint(0, 999999)
@@ -47,7 +47,6 @@ istisnalar = [
     "Shoe Cleaning Sponge", "Candlestick", "Bag", "Suspenders", "Magnet"
 ]
 
-
 st.set_page_config(page_title="Komponent Kontrol", layout="wide")
 st.title("👟 Komponent Kontrol Uygulaması")
 
@@ -68,10 +67,11 @@ if uploaded_file:
     if selected_df is not None:
         df = selected_df
         df['KomponentId'] = pd.to_numeric(df['KomponentId'], errors='coerce')
-        df['Renk'] = ''
+        df['KontrolDurumu'] = ''
 
-        df.loc[(df['KomponentId'] > 0) & (~df['ModelTanim'].isin(istisnalar)), 'Renk'] = 'Sarı'
-        df.loc[df['ModelTanim'].isin(ayakkabi_modelleri), 'Renk'] = 'Sarı'
+        df.loc[(df['KomponentId'] > 0) & (~df['ModelTanim'].isin(istisnalar)), 'KontrolDurumu'] = 'Kontrol et'
+        df.loc[df['ModelTanim'].isin(ayakkabi_modelleri), 'KontrolDurumu'] = 'Kontrol et'
+        df['KontrolDurumu'] = df['KontrolDurumu'].replace('', 'Kontrol etme')
 
         ttn_input = st.text_input("🎯 TemaTakipNo gir (sadece numara):")
 
@@ -80,38 +80,22 @@ if uploaded_file:
             mask = df['TemaTakipNo'] == ttn_input
 
             if mask.any():
-                kontrol_var = (
-                    ((df.loc[mask, 'KomponentId'] > 0) & (~df.loc[mask, 'ModelTanim'].isin(istisnalar))).any()
-                    or (df.loc[mask, 'ModelTanim'].isin(ayakkabi_modelleri)).any()
-                )
-                if kontrol_var:
+                if (df.loc[mask, 'KontrolDurumu'] == 'Kontrol et').any():
                     speak_text("Kontrol et")
-                    df.loc[mask & (df['Renk'] == 'Sarı'), 'Renk'] = 'Kırmızı'
                     st.session_state.kontroller.append(ttn_input)
             else:
                 st.error("Bu TemaTakipNo bulunamadı!")
 
-        # 💥 JSON uyumsuzlukları önleniyor
+        # JSON hatalarını önle
         df = df.astype(str)
         df = df.replace({pd.NA: '', None: '', 'nan': '', 'NaN': ''})
 
-        renk_kodu = JsCode("""
-        function(params) {
-            if (params.data.Renk === 'Kırmızı') {
-                return {'backgroundColor': '#ff4d4d', 'color': 'white'};
-            } else if (params.data.Renk === 'Sarı') {
-                return {'backgroundColor': '#fff176'};
-            }
-        }
-        """)
-
         gb = GridOptionsBuilder.from_dataframe(df)
         gb.configure_default_column(resizable=True, filterable=True, sortable=True)
-        gb.configure_column("Renk", cellStyle=renk_kodu)
         gb.configure_pagination()
         grid_options = gb.build()
 
-        st.markdown("### 📋 Tüm Liste (Renkli Takip)")
+        st.markdown("### 📋 TemaTakip Kontrol Tablosu")
         AgGrid(df, gridOptions=grid_options, height=600, theme="streamlit")
     else:
         st.error("TemaTakipNo, KomponentId ve ModelTanim sütunları eksik.")
