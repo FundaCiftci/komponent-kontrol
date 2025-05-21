@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import random
 
-# SESLİ KOMUT - Her tetikleme için eşsizleştir
+# SESLİ KOMUT
 def speak_text(text):
     unique = random.randint(0, 1000000)
     st.components.v1.html(f"""
@@ -13,16 +13,14 @@ def speak_text(text):
         </script>
     """, height=0)
 
-# Ayakkabı grubu kontrol listesi (ModelTanim eşleşmesi)
+# Kontrol listeleri
 ayakkabi_modelleri = [
     "SANDALS", "Slippers", "Beach Slippers", "Shoes", "Beach Shoes", "Home Shoes", "Beach Sandals",
     "HOME SLIPPERS", "Boots", "Rain Boots", "ТУФЛИ", "ОБУВЬ ПЛЯЖНАЯ", "САНДАЛИИ", "ТАПОЧКИ",
     "КЕДЫ", "ДОМАШНЯЯ ОБУВЬ", "ЭСПАДРИЛЬИ", "Home Boots"
 ]
 
-# Hariç tutulacak modeller (KomponentId > 0 olsa bile sarı/kırmızı yapılmayacak)
-istisna_model_listesi = [
-    "Trainer Socks", "Crown Headband", "Socks", "Bath Mat", "Plate Charger", "Rollers", "Toy Set",
+istisna_model_listesi = ["Trainer Socks", "Crown Headband", "Socks", "Bath Mat", "Plate Charger", "Rollers", "Toy Set", 
     "Invisible Socks", "Water Bottle", "Sunglasses", "Toy Car", "Plate", "Toy Figurin (Unfilled)",
     "Hair Clip", "Hair Elastic", "Below Knee Socks", "Suitcase", "Cake Stand", "Fun Toys", "Gift Bag",
     "Shopping Bag", "Backpack", "Hair Brush", "Fan/Ventilator", "Toy Figurin Filled", "Frame", "Necklace",
@@ -50,6 +48,7 @@ istisna_model_listesi = [
     "Bag", "Suspenders", "Magnet"
 ]
 
+# Streamlit Arayüz
 st.set_page_config(page_title="Komponent Kontrol", layout="wide")
 st.title("🔍 Komponent Kontrol Uygulaması")
 
@@ -68,21 +67,24 @@ if uploaded_file:
         df = selected_df
         df['Renk'] = ''
 
-        # 1. KomponentId > 0 ama istisna modellerde değilse sarı
-        df.loc[(df['KomponentId'] > 0) & (~df['ModelTanim'].isin(istisna_model_listesi)), 'Renk'] = 'Sarı'
-
-        # 2. Ayakkabı grubu modelleri varsa sarı
-        df.loc[df['ModelTanim'].isin(ayakkabi_modelleri), 'Renk'] = 'Sarı'
+        # İlk kontrol - sarıya boya
+        df.loc[
+            ((df['KomponentId'] > 0) & (~df['ModelTanim'].isin(istisna_model_listesi))) |
+            (df['ModelTanim'].isin(ayakkabi_modelleri)),
+            'Renk'
+        ] = 'Sarı'
 
         st.success(f"Sayfa bulundu ve yüklendi: {sheet_name}")
-        st.dataframe(df)
+        st.dataframe(df.style.apply(lambda row: ['background-color: yellow' if row.Renk == 'Sarı'
+                                                 else 'background-color: red' if row.Renk == 'Kırmızı'
+                                                 else '' for _ in row], axis=1))
 
         ttn_input = st.text_input("TemaTakipNo gir (sadece numara):")
 
         if ttn_input:
             ttn_input = str(ttn_input).strip()
             if (df['TemaTakipNo'].astype(str) == ttn_input).any():
-                mask = (df['TemaTakipNo'].astype(str) == ttn_input)
+                mask = df['TemaTakipNo'].astype(str) == ttn_input
 
                 kontrol_var = (
                     ((df.loc[mask, 'KomponentId'] > 0) & (~df.loc[mask, 'ModelTanim'].isin(istisna_model_listesi))).any()
@@ -91,11 +93,12 @@ if uploaded_file:
 
                 if kontrol_var:
                     speak_text("Kontrol et")
-                    if (df.loc[mask, 'Renk'] == 'Sarı').any():
-                        df.loc[mask, 'Renk'] = 'Kırmızı'
+                    df.loc[mask & (df['Renk'] == 'Sarı'), 'Renk'] = 'Kırmızı'
 
-                st.dataframe(df)
+                st.dataframe(df.style.apply(lambda row: ['background-color: yellow' if row.Renk == 'Sarı'
+                                                         else 'background-color: red' if row.Renk == 'Kırmızı'
+                                                         else '' for _ in row], axis=1))
             else:
                 st.error("Bu TemaTakipNo bulunamadı!")
     else:
-        st.error("TemaTakipNo, KomponentId ve ModelTanim sütunları bulunamadı.")
+        st.error("TemaTakipNo, KomponentId ve ModelTanim sütunları eksik.")
