@@ -1,9 +1,9 @@
+
 import streamlit as st
 import pandas as pd
 import random
-from st_aggrid import AgGrid, GridOptionsBuilder
+from st_aggrid import AgGrid, GridOptionsBuilder, JsCode
 
-# Sesli uyarı fonksiyonu
 def speak_text(text):
     unique = random.randint(0, 1000000)
     st.components.v1.html(f"""
@@ -14,7 +14,6 @@ def speak_text(text):
         </script>
     """, height=0)
 
-# Ayakkabı ve istisna listeleri
 ayakkabi_modelleri = [
     "SANDALS", "Slippers", "Beach Slippers", "Shoes", "Beach Shoes", "Home Shoes", "Beach Sandals",
     "HOME SLIPPERS", "Boots", "Rain Boots", "ТУФЛИ", "ОБУВЬ ПЛЯЖНАЯ", "САНДАЛИИ", "ТАПОЧКИ",
@@ -49,10 +48,9 @@ istisnalar = [
 ]
 
 st.set_page_config(page_title="Komponent Kontrol", layout="wide")
-st.title("👟 Komponent Kontrol Uygulaması")
+st.title("🧪 Komponent Kontrol Sistemi")
 
 uploaded_file = st.file_uploader("📁 Excel dosyanı yükle (.xlsx)", type=["xlsx"])
-
 kontrol_edilenler = []
 
 if uploaded_file:
@@ -60,47 +58,51 @@ if uploaded_file:
     selected_df = None
 
     for sheet_name, df in all_sheets.items():
-        if all(k in df.columns for k in ['TemaTakipNo', 'KomponentId', 'ModelTanim']):
+        if all(col in df.columns for col in ['TemaTakipNo', 'KomponentId', 'ModelTanim']):
             selected_df = df.copy()
             break
 
     if selected_df is not None:
-        df = selected_df
+        df = selected_df.copy()
         df['Renk'] = ''
 
-        # SARI: KomponentId > 0 && değilse istisna, veya ayakkabı modeli
+        # Sarıya boyanacak satırlar
         df.loc[(df['KomponentId'].astype(float) > 0) & (~df['ModelTanim'].isin(istisnalar)), 'Renk'] = 'Sarı'
         df.loc[df['ModelTanim'].isin(ayakkabi_modelleri), 'Renk'] = 'Sarı'
 
-        st.success(f"Sayfa bulundu: {sheet_name}")
+        if 'KontrolDurumu' not in df.columns:
+            df['KontrolDurumu'] = ''
 
-        # Giriş alanı
-        ttn_input = st.text_input("🎯 TemaTakipNo gir (sadece numara):", key="inputbox")
-
-        if "kontroller" not in st.session_state:
-            st.session_state.kontroller = []
+        ttn_input = st.text_input("🎯 TemaTakipNo gir (sadece numara):")
 
         if ttn_input:
-            ttn_input = ttn_input.strip()
-            mask = df['TemaTakipNo'] == ttn_input
+            mask = (df['TemaTakipNo'].astype(str) == ttn_input)
+            kontrol_var = (
+                ((df.loc[mask, 'KomponentId'].astype(float) > 0) & (~df.loc[mask, 'ModelTanim'].isin(istisnalar))).any()
+                or (df.loc[mask, 'ModelTanim'].isin(ayakkabi_modelleri)).any()
+            )
+            if kontrol_var:
+                df.loc[mask & (df['Renk'] == 'Sarı'), 'Renk'] = 'Kırmızı'
+                df.loc[mask, 'KontrolDurumu'] = 'Kontrol Edildi'
+                speak_text("Kontrol et")
 
-            if mask.any():
-                kontrol_var = (
-                    ((df.loc[mask, 'KomponentId'].astype(float) > 0) & (~df.loc[mask, 'ModelTanim'].isin(istisnalar))).any()
-                    or (df.loc[mask, 'ModelTanim'].isin(ayakkabi_modelleri)).any()
-                )
-                if kontrol_var:
-                    speak_text("Kontrol et")
-                    df.loc[mask & (df['Renk'] == 'Sarı'), 'Renk'] = 'Kırmızı'
-                    st.session_state.kontroller.append(ttn_input)
-            else:
-                st.error("Bu TemaTakipNo bulunamadı!")
+        # Hücreye göre arka plan boyama
+        cell_style_jscode = JsCode("""
+        function(params) {
+            if (params.data.Renk == 'Sarı') {
+                return { 'backgroundColor': 'yellow' }
+            } else if (params.data.Renk == 'Kırmızı') {
+                return { 'backgroundColor': 'red', 'color': 'white' }
+            }
+        }
+        """)
 
-        # 🎨 TABLOLAR: Sarılar ve Kırmızılar ayrı ayrı gösterilir
-        st.markdown("### 🟡 Kontrol Edilecek Satırlar")
-        AgGrid(df[df['Renk'] == 'Sarı'], height=300)
+        gb = GridOptionsBuilder.from_dataframe(df)
+        gb.configure_default_column(resizable=True, filterable=True, sortable=True)
+        gb.configure_column("Renk", cellStyle=cell_style_jscode)
+        gb.configure_pagination()
+        gridOptions = gb.build()
 
-        st.markdown("### 🔴 Kontrol Edilen (Kırmızıya Dönüşenler)")
-        AgGrid(df[df['Renk'] == 'Kırmızı'], height=300)
+        AgGrid(df, gridOptions=gridOptions, height=600, theme="material")
     else:
         st.error("TemaTakipNo, KomponentId ve ModelTanim sütunları eksik.")
