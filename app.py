@@ -102,18 +102,3 @@ if uploaded_file:
     else:
         st.error("TemaTakipNo, KomponentId ve ModelTanim sütunları eksik.")
 
-
-import io
-
-if not df.empty:
-    towrite = io.BytesIO()
-    df.to_excel(towrite, index=False, sheet_name="Kontrol Sonucu")
-    towrite.seek(0)
-
-    st.download_button(
-        label="📥 Excel olarak indir",
-        data=towrite,
-        file_name="kontrol_sonucu.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
-
