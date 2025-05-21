@@ -67,7 +67,7 @@ if uploaded_file:
     if selected_df is not None:
         df = selected_df
         df['KomponentId'] = pd.to_numeric(df['KomponentId'], errors='coerce')
-        df['KontrolDurumu'] = ''
+      
 
         df['KontrolDurumu'] = ''
 
