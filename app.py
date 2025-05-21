@@ -1,10 +1,14 @@
 import streamlit as st
 import pandas as pd
+import random
 
+# Tarayıcıda sesli komut vermek için güncellenmiş fonksiyon
 def speak_text(text):
+    unique = random.randint(0, 1000000)
     st.components.v1.html(f"""
         <script>
-        var msg = new SpeechSynthesisUtterance("{text}");
+        var msg = new SpeechSynthesisUtterance("{text} {unique}");
+        msg.text = "{text}";
         window.speechSynthesis.speak(msg);
         </script>
     """, height=0)
@@ -38,9 +42,9 @@ if uploaded_file:
             if (df['TemaTakipNo'].astype(str) == ttn_input).any():
                 mask = (df['TemaTakipNo'].astype(str) == ttn_input)
                 if (df.loc[mask, 'KomponentId'] > 0).any():
-                    # Her seferde sesli söyle
+                    # Her seferinde sesli söyle
                     speak_text("Komponent var")
-                    # Sadece sarıysa kırmızı yap
+                    # Sadece sarıysa kırmızıya çevir
                     if (df.loc[mask, 'Renk'] == 'Sarı').any():
                         df.loc[mask, 'Renk'] = 'Kırmızı'
                 st.dataframe(df)
