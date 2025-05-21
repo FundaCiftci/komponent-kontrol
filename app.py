@@ -1,6 +1,14 @@
 import streamlit as st
 import pandas as pd
 
+def speak_text(text):
+    st.components.v1.html(f"""
+        <script>
+        var msg = new SpeechSynthesisUtterance("{text}");
+        window.speechSynthesis.speak(msg);
+        </script>
+    """, height=0)
+
 st.set_page_config(page_title="Komponent Kontrol", layout="wide")
 st.title("🔍 Komponent Kontrol Uygulaması")
 
@@ -31,7 +39,7 @@ if uploaded_file:
                 mask = (df['TemaTakipNo'].astype(str) == ttn_input)
                 if (df.loc[mask, 'KomponentId'] > 0).any():
                     df.loc[mask, 'Renk'] = 'Kırmızı'
-                    st.warning("Komponent var 🚨")
+                    speak_text("Komponent var")
                 st.dataframe(df)
             else:
                 st.error("Bu TemaTakipNo bulunamadı!")
