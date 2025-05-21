@@ -19,6 +19,7 @@ ayakkabi_modelleri = [
     "HOME SLIPPERS", "Boots", "Rain Boots", "ТУФЛИ", "ОБУВЬ ПЛЯЖНАЯ", "САНДАЛИИ", "ТАПОЧКИ",
     "КЕДЫ", "ДОМАШНЯЯ ОБУВЬ", "ЭСПАДРИЛЬИ", "Home Boots"
 ]
+
 istisnalar = [
     "Trainer Socks", "Crown Headband", "Socks", "Bath Mat", "Plate Charger", "Rollers", "Toy Set",
     "Invisible Socks", "Water Bottle", "Sunglasses", "Toy Car", "Plate", "Toy Figurin (Unfilled)",
@@ -48,7 +49,7 @@ istisnalar = [
 ]
 
 st.set_page_config(page_title="Komponent Kontrol", layout="wide")
-st.title("👟 Komponent Kontrol Uygulaması")
+st.title("👟 Havalimanı Kontrol Uygulaması")
 
 uploaded_file = st.file_uploader("📁 Excel dosyanı yükle (.xlsx)", type=["xlsx"])
 
@@ -67,18 +68,13 @@ if uploaded_file:
     if selected_df is not None:
         df = selected_df
         df['KomponentId'] = pd.to_numeric(df['KomponentId'], errors='coerce')
-      
-
         df['KontrolDurumu'] = ''
 
-# Aynı sesli kontrol mantığını yansıt
-kontrol_mask = (
-    ((df['KomponentId'] > 0) & (~df['ModelTanim'].isin(istisnalar)))
-    | (df['ModelTanim'].isin(ayakkabi_modelleri))
-)
-
-df.loc[kontrol_mask, 'KontrolDurumu'] = 'Kontrol et'
-
+        kontrol_mask = (
+            ((df['KomponentId'] > 0) & (~df['ModelTanim'].isin(istisnalar)))
+            | (df['ModelTanim'].isin(ayakkabi_modelleri))
+        )
+        df.loc[kontrol_mask, 'KontrolDurumu'] = 'Kontrol et'
 
         ttn_input = st.text_input("🎯 TemaTakipNo gir (sadece numara):")
 
@@ -93,7 +89,6 @@ df.loc[kontrol_mask, 'KontrolDurumu'] = 'Kontrol et'
             else:
                 st.error("Bu TemaTakipNo bulunamadı!")
 
-        # JSON hatalarını önle
         df = df.astype(str)
         df = df.replace({pd.NA: '', None: '', 'nan': '', 'NaN': ''})
 
