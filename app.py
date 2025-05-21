@@ -47,7 +47,7 @@ istisna_model_listesi = [
     "Candle", "ПОДСТАВКА ДЛЯ ТОРТА", "СПОРТИВНАЯ СУМКА", "Nail Nipper", "СОЛОНКА/ПЕРЕЧНИЦА",
     "Saucer", "БРАСЛЕТ", "ДИСПЕНСЕР ДЛЯ ЖИДКОГО МЫЛА", "Makeup Brush Cleaner", "Ruler",
     "Soap Tray", "Toothbrush Holder", "Food Container", "Shoe Cleaning Sponge", "Candlestick",
-    "Bag", "Suspenders"
+    "Bag", "Suspenders", "Magnet"
 ]
 
 st.set_page_config(page_title="Komponent Kontrol", layout="wide")
