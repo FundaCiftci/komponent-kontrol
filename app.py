@@ -69,9 +69,16 @@ if uploaded_file:
         df['KomponentId'] = pd.to_numeric(df['KomponentId'], errors='coerce')
         df['KontrolDurumu'] = ''
 
-        df.loc[(df['KomponentId'] > 0) & (~df['ModelTanim'].isin(istisnalar)), 'KontrolDurumu'] = 'Kontrol et'
-        df.loc[df['ModelTanim'].isin(ayakkabi_modelleri), 'KontrolDurumu'] = 'Kontrol et'
-        df['KontrolDurumu'] = df['KontrolDurumu'].replace('', 'Kontrol etme')
+        df['KontrolDurumu'] = ''
+
+# Aynı sesli kontrol mantığını yansıt
+kontrol_mask = (
+    ((df['KomponentId'] > 0) & (~df['ModelTanim'].isin(istisnalar)))
+    | (df['ModelTanim'].isin(ayakkabi_modelleri))
+)
+
+df.loc[kontrol_mask, 'KontrolDurumu'] = 'Kontrol et'
+
 
         ttn_input = st.text_input("🎯 TemaTakipNo gir (sadece numara):")
 
