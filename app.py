@@ -38,8 +38,11 @@ if uploaded_file:
             if (df['TemaTakipNo'].astype(str) == ttn_input).any():
                 mask = (df['TemaTakipNo'].astype(str) == ttn_input)
                 if (df.loc[mask, 'KomponentId'] > 0).any():
-                    df.loc[mask, 'Renk'] = 'Kırmızı'
+                    # Her seferde sesli söyle
                     speak_text("Komponent var")
+                    # Sadece sarıysa kırmızı yap
+                    if (df.loc[mask, 'Renk'] == 'Sarı').any():
+                        df.loc[mask, 'Renk'] = 'Kırmızı'
                 st.dataframe(df)
             else:
                 st.error("Bu TemaTakipNo bulunamadı!")
