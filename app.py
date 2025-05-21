@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import random
 
-# Tarayıcıda sesli komut vermek için güncellenmiş fonksiyon
+# Her seferde sesli uyarı tetiklesin
 def speak_text(text):
     unique = random.randint(0, 1000000)
     st.components.v1.html(f"""
@@ -12,6 +12,13 @@ def speak_text(text):
         window.speechSynthesis.speak(msg);
         </script>
     """, height=0)
+
+# Ayakkabı grubu - ModelTanim için eşleşme listesi
+ayakkabi_modelleri = [
+    "SANDALS", "Slippers", "Beach Slippers", "Shoes", "Beach Shoes", "Home Shoes", "Beach Sandals",
+    "HOME SLIPPERS", "Boots", "Rain Boots", "ТУФЛИ", "ОБУВЬ ПЛЯЖНАЯ", "САНДАЛИИ", "ТАПОЧКИ",
+    "КЕДЫ", "ДОМАШНЯЯ ОБУВЬ", "ЭСПАДРИЛЬИ", "Home Boots"
+]
 
 st.set_page_config(page_title="Komponent Kontrol", layout="wide")
 st.title("🔍 Komponent Kontrol Uygulaması")
@@ -23,16 +30,21 @@ if uploaded_file:
     selected_df = None
 
     for sheet_name, df in all_sheets.items():
-        if 'TemaTakipNo' in df.columns and 'KomponentId' in df.columns:
+        if 'TemaTakipNo' in df.columns and 'KomponentId' in df.columns and 'ModelTanim' in df.columns:
             selected_df = df.copy()
             break
 
     if selected_df is not None:
         df = selected_df
         df['Renk'] = ''
+
+        # KomponentId > 0 olanları sarıya boya
         df.loc[df['KomponentId'] > 0, 'Renk'] = 'Sarı'
 
-        st.success("Uygun sayfa bulundu ve yüklendi: {}".format(sheet_name))
+        # Ayakkabı grubu modelleri varsa onları da sarıya boya
+        df.loc[df['ModelTanim'].isin(ayakkabi_modelleri), 'Renk'] = 'Sarı'
+
+        st.success(f"Sayfa bulundu ve yüklendi: {sheet_name}")
         st.dataframe(df)
 
         ttn_input = st.text_input("TemaTakipNo gir (sadece numara):")
@@ -41,14 +53,20 @@ if uploaded_file:
             ttn_input = str(ttn_input).strip()
             if (df['TemaTakipNo'].astype(str) == ttn_input).any():
                 mask = (df['TemaTakipNo'].astype(str) == ttn_input)
-                if (df.loc[mask, 'KomponentId'] > 0).any():
-                    # Her seferinde sesli söyle
+
+                # Kontrol: KomponentId > 0 veya ModelTanim eşleşmesi varsa
+                kontrol_var = (
+                    (df.loc[mask, 'KomponentId'] > 0).any() or 
+                    (df.loc[mask, 'ModelTanim'].isin(ayakkabi_modelleri)).any()
+                )
+
+                if kontrol_var:
                     speak_text("Komponent var")
-                    # Sadece sarıysa kırmızıya çevir
                     if (df.loc[mask, 'Renk'] == 'Sarı').any():
                         df.loc[mask, 'Renk'] = 'Kırmızı'
+
                 st.dataframe(df)
             else:
                 st.error("Bu TemaTakipNo bulunamadı!")
     else:
-        st.error("Hiçbir sayfada 'TemaTakipNo' ve 'KomponentId' sütunları birlikte bulunamadı.")
+        st.error("Gerekli sütunlar (TemaTakipNo, KomponentId, ModelTanim) bulunamadı.")
